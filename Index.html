@@ -1,0 +1,734 @@
+html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CipherVault AES-256</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+:root{
+--bg:#0a0f1c;
+--card:#121a2b;
+--border:#24304a;
+--primary:#00d4ff;
+--secondary:#7c3aed;
+--text:#ffffff;
+--muted:#9aa4b2;
+}
+
+body{
+font-family:Poppins,Arial,sans-serif;
+background:var(--bg);
+color:white;
+min-height:100vh;
+padding:30px;
+}
+
+.container{
+max-width:1000px;
+margin:auto;
+}
+
+.card{
+background:rgba(18,26,43,.85);
+border:1px solid var(--border);
+border-radius:16px;
+padding:20px;
+margin-bottom:20px;
+}
+
+h1{
+text-align:center;
+color:var(--primary);
+margin-bottom:10px;
+}
+
+.subtitle{
+text-align:center;
+margin-bottom:30px;
+color:var(--muted);
+}
+
+textarea{
+width:100%;
+min-height:180px;
+background:#0f1729;
+color:white;
+border:1px solid var(--border);
+border-radius:10px;
+padding:12px;
+font-size:15px;
+resize:vertical;
+}
+
+input{
+width:100%;
+padding:12px;
+background:#0f1729;
+color:white;
+border:1px solid var(--border);
+border-radius:10px;
+}
+
+.password-container{
+position:relative;
+}
+
+.toggle-btn{
+position:absolute;
+right:8px;
+top:50%;
+transform:translateY(-50%);
+width:42px;
+height:42px;
+padding:0;
+font-size:18px;
+}
+
+button{
+padding:12px 18px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+color:white;
+font-weight:bold;
+background:linear-gradient(
+135deg,
+var(--primary),
+var(--secondary)
+);
+}
+
+button:hover{
+opacity:.9;
+}
+
+.button-group{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.button-group button{
+flex:1;
+}
+
+.strength-bar{
+height:12px;
+background:#1f2937;
+border-radius:999px;
+margin-top:15px;
+overflow:hidden;
+}
+
+.strength-fill{
+height:100%;
+width:0%;
+transition:.3s;
+}
+
+#strengthText{
+display:block;
+margin-top:8px;
+}
+
+#analysis{
+margin-top:15px;
+padding:10px;
+background:#0f1729;
+border-radius:10px;
+line-height:1.8;
+font-size:14px;
+}
+
+#processLog{
+background:#0f1729;
+padding:15px;
+border-radius:10px;
+white-space:pre-wrap;
+line-height:1.8;
+min-height:150px;
+font-family:Consolas,monospace;
+}
+
+@media(max-width:768px){
+
+.button-group{
+flex-direction:column;
+}
+
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>CipherVault</h1>
+
+<div class="subtitle">
+AES-256-GCM Encryption Tool
+</div>
+
+<div class="card">
+
+<h3>Input</h3>
+<br>
+
+<textarea
+id="inputText"
+placeholder="Masukkan text..."
+></textarea>
+
+</div>
+
+<div class="card">
+
+<h3>Password</h3>
+<br>
+
+<div class="password-container">
+
+<input
+type="password"
+id="password"
+placeholder="Masukkan password..."
+>
+
+<button
+type="button"
+class="toggle-btn"
+id="togglePassword"
+>
+👁
+</button>
+
+</div>
+
+<div class="strength-bar">
+<div
+class="strength-fill"
+id="strengthFill"
+></div>
+</div>
+
+<span id="strengthText">
+Password Strength
+</span>
+
+<div id="analysis">
+
+✗ Uppercase<br>
+✗ Lowercase<br>
+✗ Number<br>
+✗ Symbol<br>
+✗ Length ≥ 12
+
+</div>
+
+<br>
+
+<button id="generatePassword">
+Generate Strong Password
+</button>
+
+</div>
+
+<div class="card">
+
+<h3>Actions</h3>
+<br>
+
+<div class="button-group">
+
+<button id="encryptBtn">
+Encrypt
+</button>
+
+<button id="decryptBtn">
+Decrypt
+</button>
+
+<button id="copyBtn">
+Copy
+</button>
+
+<button id="clearBtn">
+Clear
+</button>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h3>Output</h3>
+<br>
+
+<textarea
+id="outputText"
+readonly
+placeholder="Hasil..."
+></textarea>
+
+</div>
+
+<div class="card">
+
+<h3>Process Log</h3>
+<br>
+
+<div id="processLog">
+
+Menunggu proses...
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const inputText =
+document.getElementById("inputText");
+
+const outputText =
+document.getElementById("outputText");
+
+const passwordInput =
+document.getElementById("password");
+
+const processLog =
+document.getElementById("processLog");
+
+const strengthFill =
+document.getElementById("strengthFill");
+
+const strengthText =
+document.getElementById("strengthText");
+
+const analysis =
+document.getElementById("analysis");
+
+/* ========================= */
+
+function arrayBufferToBase64(buffer){
+
+let binary="";
+
+const bytes =
+new Uint8Array(buffer);
+
+for(let b of bytes){
+
+binary += String.fromCharCode(b);
+
+}
+
+return btoa(binary);
+
+}
+
+function base64ToArrayBuffer(base64){
+
+const binary = atob(base64);
+
+const bytes =
+new Uint8Array(binary.length);
+
+for(let i=0;i<binary.length;i++){
+
+bytes[i] =
+binary.charCodeAt(i);
+
+}
+
+return bytes.buffer;
+
+}
+
+function randomBytes(length){
+
+const arr =
+new Uint8Array(length);
+
+crypto.getRandomValues(arr);
+
+return arr;
+
+}
+
+function combineBuffers(...arrays){
+
+let total=0;
+
+arrays.forEach(a=>{
+
+total += a.length;
+
+});
+
+const result =
+new Uint8Array(total);
+
+let offset=0;
+
+arrays.forEach(a=>{
+
+result.set(a,offset);
+
+offset += a.length;
+
+});
+
+return result;
+
+}
+
+async function deriveKey(password,salt){
+
+const encoder =
+new TextEncoder();
+
+const keyMaterial =
+await crypto.subtle.importKey(
+"raw",
+encoder.encode(password),
+{name:"PBKDF2"},
+false,
+["deriveKey"]
+);
+
+return crypto.subtle.deriveKey(
+{
+name:"PBKDF2",
+salt:salt,
+iterations:100000,
+hash:"SHA-256"
+},
+keyMaterial,
+{
+name:"AES-GCM",
+length:256
+},
+false,
+["encrypt","decrypt"]
+);
+
+}
+
+/* ========================= */
+
+async function encryptAES(){
+
+try{
+
+const text =
+inputText.value;
+
+const password =
+passwordInput.value;
+
+if(!text || !password){
+
+alert("Isi text dan password");
+
+return;
+
+}
+
+processLog.textContent =
+"Generating Salt...\nGenerating IV...\nRunning PBKDF2...\nEncrypting AES-256...";
+
+const salt =
+randomBytes(16);
+
+const iv =
+randomBytes(12);
+
+const key =
+await deriveKey(
+password,
+salt
+);
+
+const encrypted =
+await crypto.subtle.encrypt(
+{
+name:"AES-GCM",
+iv:iv
+},
+key,
+new TextEncoder().encode(text)
+);
+
+const finalData =
+combineBuffers(
+salt,
+iv,
+new Uint8Array(encrypted)
+);
+
+outputText.value =
+arrayBufferToBase64(finalData);
+
+processLog.textContent =
+"✓ Encryption Success\n\nAlgorithm : AES-256-GCM\nPBKDF2 : 100000 Iterations\nSalt : 16 Bytes\nIV : 12 Bytes";
+
+}
+catch(e){
+
+alert("Encrypt gagal");
+
+}
+
+}
+
+async function decryptAES(){
+
+try{
+
+const cipher =
+inputText.value.trim();
+
+const password =
+passwordInput.value;
+
+const buffer =
+new Uint8Array(
+base64ToArrayBuffer(cipher)
+);
+
+const salt =
+buffer.slice(0,16);
+
+const iv =
+buffer.slice(16,28);
+
+const encrypted =
+buffer.slice(28);
+
+const key =
+await deriveKey(
+password,
+salt
+);
+
+const decrypted =
+await crypto.subtle.decrypt(
+{
+name:"AES-GCM",
+iv:iv
+},
+key,
+encrypted
+);
+
+outputText.value =
+new TextDecoder().decode(
+decrypted
+);
+
+processLog.textContent =
+"✓ Decryption Success";
+
+}
+catch(e){
+
+alert(
+"Password salah atau data rusak"
+);
+
+}
+
+}
+
+/* ========================= */
+
+function generatePassword(){
+
+const chars =
+"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+
+let result="";
+
+for(let i=0;i<20;i++){
+
+result += chars[
+Math.floor(
+Math.random()*chars.length
+)
+];
+
+}
+
+passwordInput.value =
+result;
+
+updateStrength();
+
+}
+
+function updateStrength(){
+
+const p =
+passwordInput.value;
+
+let score=0;
+
+const upper =
+/[A-Z]/.test(p);
+
+const lower =
+/[a-z]/.test(p);
+
+const number =
+/[0-9]/.test(p);
+
+const symbol =
+/[^A-Za-z0-9]/.test(p);
+
+const length =
+p.length >= 12;
+
+if(upper) score += 20;
+if(lower) score += 20;
+if(number) score += 20;
+if(symbol) score += 20;
+if(length) score += 20;
+
+strengthFill.style.width =
+score + "%";
+
+let status="Weak";
+let color="#ef4444";
+
+if(score >= 60){
+
+status="Medium";
+color="#f59e0b";
+
+}
+
+if(score >= 80){
+
+status="Strong";
+color="#22c55e";
+
+}
+
+if(score === 100){
+
+status="Very Strong";
+color="#00d4ff";
+
+}
+
+strengthFill.style.background =
+color;
+
+strengthText.textContent =
+status + " (" + score + "%)";
+
+analysis.innerHTML =
+
+`${upper?'✓':'✗'} Uppercase<br>
+${lower?'✓':'✗'} Lowercase<br>
+${number?'✓':'✗'} Number<br>
+${symbol?'✓':'✗'} Symbol<br>
+${length?'✓':'✗'} Length ≥ 12`;
+
+}
+
+document
+.getElementById("encryptBtn")
+.addEventListener(
+"click",
+encryptAES
+);
+
+document
+.getElementById("decryptBtn")
+.addEventListener(
+"click",
+decryptAES
+);
+
+document
+.getElementById("generatePassword")
+.addEventListener(
+"click",
+generatePassword
+);
+
+document
+.getElementById("copyBtn")
+.addEventListener(
+"click",
+()=>{
+
+navigator.clipboard.writeText(
+outputText.value
+);
+
+alert("Copied!");
+
+}
+);
+
+document
+.getElementById("clearBtn")
+.addEventListener(
+"click",
+()=>{
+
+inputText.value="";
+outputText.value="";
+processLog.textContent=
+"Menunggu proses...";
+
+}
+);
+
+passwordInput
+.addEventListener(
+"input",
+updateStrength
+);
+
+document
+.getElementById("togglePassword")
+.addEventListener(
+"click",
+()=>{
+
+if(passwordInput.type==="password"){
+
+passwordInput.type="text";
+
+}else{
+
+passwordInput.type="password";
+
+}
+
+}
+);
+
+updateStrength();
+
+</script>
+
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XRF Cipher</title>
+    <title>XRF Cipher - Production</title>
     <style>
         :root {
             --bg: #0a0f1c;
@@ -11,6 +11,10 @@
             --border: #24304a;
             --primary: #00d4ff;
             --text: #ffffff;
+            --success: #50fa7b;
+            --error: #ff5555;
+            --warning: #ffb86c;
+            --info: #8be9fd;
         }
 
         * {
@@ -30,10 +34,13 @@
         h1, h2, h3 {
             color: var(--primary);
             margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -45,8 +52,9 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 20px;
-            margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
         }
 
         .full-width {
@@ -86,6 +94,7 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            margin-top: auto;
         }
 
         button {
@@ -100,6 +109,8 @@
             font-size: 14px;
             transition: all 0.3s;
             text-transform: uppercase;
+            flex: 1;
+            min-width: 120px;
         }
 
         button:hover {
@@ -109,8 +120,9 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 10px;
+            margin-bottom: 15px;
         }
 
         .stat-box {
@@ -119,6 +131,9 @@
             padding: 10px;
             border-radius: 4px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .stat-label {
@@ -127,10 +142,38 @@
         }
 
         .stat-value {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             color: var(--primary);
             margin-top: 5px;
+            word-break: break-all;
+        }
+
+        .formula-box {
+            background-color: var(--bg);
+            border: 1px dashed var(--border);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--warning);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .layer-list {
+            list-style-type: none;
+            padding-left: 0;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .layer-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(36, 48, 74, 0.5);
+        }
+
+        .layer-list li:last-child {
+            border-bottom: none;
         }
 
         .log-container {
@@ -138,7 +181,7 @@
             border: 1px solid var(--border);
             padding: 15px;
             border-radius: 4px;
-            height: 300px;
+            height: 400px;
             overflow-y: auto;
             font-size: 13px;
         }
@@ -149,13 +192,26 @@
             padding-bottom: 5px;
         }
 
-        .log-round {
-            color: #ffb86c;
-            margin-top: 10px;
+        .log-round { color: var(--warning); margin-top: 10px; font-weight: bold; }
+        .log-success { color: var(--success); }
+        .log-error { color: var(--error); font-weight: bold; }
+        .log-info { color: var(--info); }
+        .log-detail { color: #8892b0; margin-left: 10px; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
         }
 
-        .log-success { color: #50fa7b; }
-        .log-info { color: #8be9fd; }
+        .badge-ready { background-color: var(--info); color: var(--bg); }
+        .badge-success { background-color: var(--success); color: var(--bg); }
+        .badge-error { background-color: var(--error); color: var(--bg); }
+        .badge-encrypt { background-color: var(--warning); color: var(--bg); }
+        .badge-decrypt { background-color: var(--primary); color: var(--bg); }
 
         .diagram {
             text-align: center;
@@ -166,16 +222,13 @@
             line-height: 1.8;
             font-weight: bold;
             letter-spacing: 1px;
+            margin-top: 15px;
         }
         
-        .arrow {
-            color: #ff79c6;
-        }
+        .arrow { color: #ff79c6; }
 
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -183,151 +236,165 @@
 
     <div class="container">
         <div class="card full-width">
-            <h1>XRF Cipher</h1>
-            <p>Multi-Round XOR Rail Fence Encryption</p>
+            <h1>
+                XRF Cipher
+                <span id="appStatus" class="status-badge badge-ready">System Ready</span>
+            </h1>
+            <p>Multi-Round XOR Rail Fence + AES-256-GCM Encryption (Production Grade)</p>
         </div>
 
-        <div class="left-col">
+        <div class="left-col" style="display: flex; flex-direction: column; gap: 20px;">
             <div class="card">
                 <label for="inputText">Input Text</label>
                 <textarea id="inputText" placeholder="Enter plaintext or ciphertext here..."></textarea>
+                <div class="stat-label" style="text-align: right; margin-top: 5px;">Length: <span id="statInputLen">0</span></div>
             </div>
 
             <div class="card">
-                <label for="keyInput">Key</label>
-                <input type="text" id="keyInput" placeholder="Enter encryption key...">
-            </div>
-
-            <div class="card">
-                <h3>Key Analysis</h3>
+                <label for="keyInput">Encryption Key</label>
+                <input type="text" id="keyInput" placeholder="Enter robust encryption key...">
+                
+                <h3 style="margin-top: 20px; font-size: 16px;">Key Analysis & Parameters</h3>
                 <div class="stats-grid">
-                    <div class="stat-box">
-                        <div class="stat-label">Length</div>
-                        <div class="stat-value" id="statLength">0</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">First Char</div>
-                        <div class="stat-value" id="statFirst">-</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Last Char</div>
-                        <div class="stat-value" id="statLast">-</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Rail Count</div>
-                        <div class="stat-value" id="statRail">0</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Loop Count</div>
-                        <div class="stat-value" id="statLoop">0</div>
-                    </div>
+                    <div class="stat-box"><div class="stat-label">Key Length / Loop</div><div class="stat-value" id="statLoop">0</div></div>
+                    <div class="stat-box"><div class="stat-label">First Char (Val)</div><div class="stat-value" id="statFirst">- (0)</div></div>
+                    <div class="stat-box"><div class="stat-label">Last Char (Val)</div><div class="stat-value" id="statLast">- (0)</div></div>
+                    <div class="stat-box"><div class="stat-label">Rail Count</div><div class="stat-value" id="statRail">0</div></div>
+                    <div class="stat-box"><div class="stat-label">Complexity Est.</div><div class="stat-value" id="statComplexity">-</div></div>
                 </div>
+                <div class="formula-box" id="statFormula">Formula: ((0 + 0) % 4) + 2 = 0</div>
+
+                <h3 style="margin-top: 20px; font-size: 16px;">AES Specification</h3>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-label">AES Mode</div><div class="stat-value">AES-256-GCM</div></div>
+                    <div class="stat-box"><div class="stat-label">PBKDF2 Iterations</div><div class="stat-value">100,000</div></div>
+                    <div class="stat-box"><div class="stat-label">Salt</div><div class="stat-value">16 Bytes</div></div>
+                    <div class="stat-box"><div class="stat-label">IV</div><div class="stat-value">12 Bytes</div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="font-size: 16px; margin: 0 0 10px 0;">Security Layers</h3>
+                <ul class="layer-list">
+                    <li><span style="color: var(--warning); font-weight: bold;">Layer 1:</span> XOR Cipher</li>
+                    <li><span style="color: var(--warning); font-weight: bold;">Layer 2:</span> Rail Fence Cipher</li>
+                    <li><span style="color: var(--warning); font-weight: bold;">Layer 3:</span> Multi-Round Iteration</li>
+                    <li><span style="color: var(--info); font-weight: bold;">Layer 4:</span> Base64 Encoding</li>
+                    <li><span style="color: var(--success); font-weight: bold;">Layer 5:</span> AES-256-GCM</li>
+                </ul>
             </div>
 
             <div class="card">
                 <div class="btn-group">
-                    <button onclick="processCipher('encrypt')">Encrypt</button>
-                    <button onclick="processCipher('decrypt')">Decrypt</button>
+                    <button onclick="executeProcess('encrypt')">Encrypt</button>
+                    <button onclick="executeProcess('decrypt')">Decrypt</button>
                     <button onclick="copyOutput()">Copy Output</button>
-                    <button onclick="clearAll()">Clear</button>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Algorithm Flow</h3>
-                <div class="diagram">
-                    Plaintext<br>
-                    <span class="arrow">↓</span><br>
-                    XOR<br>
-                    <span class="arrow">↓</span><br>
-                    Rail Fence<br>
-                    <span class="arrow">↓</span><br>
-                    Repeat N Times<br>
-                    <span class="arrow">↓</span><br>
-                    Base64<br>
-                    <span class="arrow">↓</span><br>
-                    Ciphertext
+                    <button onclick="clearAll()">Reset</button>
                 </div>
             </div>
         </div>
 
-        <div class="right-col">
+        <div class="right-col" style="display: flex; flex-direction: column; gap: 20px;">
             <div class="card">
-                <label for="outputText">Output</label>
+                <label for="outputText">Output Text</label>
                 <textarea id="outputText" readonly placeholder="Result will appear here..."></textarea>
+                <div class="stat-label" style="text-align: right; margin-top: 5px;">Length: <span id="statOutputLen">0</span></div>
             </div>
 
-            <div class="card">
+            <div class="card" style="flex: 1;">
                 <h3>Process Log</h3>
                 <div class="log-container" id="processLog"></div>
+            </div>
+        </div>
+        
+        <div class="card full-width">
+            <h3 style="font-size: 16px; margin: 0;">Algorithm Architecture</h3>
+            <div class="diagram">
+                Plaintext <span class="arrow">→</span> 
+                [ XOR(key) <span class="arrow">→</span> Rail Fence(rail) ] <span style="color: var(--warning)">× Multi Round</span> <span class="arrow">→</span> 
+                Base64 Encode <span class="arrow">→</span> AES-256-GCM <span class="arrow">→</span> Final Ciphertext
             </div>
         </div>
     </div>
 
     <script>
         // DOM Elements
-        const elInputText = document.getElementById('inputText');
-        const elKeyInput = document.getElementById('keyInput');
-        const elOutputText = document.getElementById('outputText');
-        const elLog = document.getElementById('processLog');
+        const DOM = {
+            input: document.getElementById('inputText'),
+            key: document.getElementById('keyInput'),
+            output: document.getElementById('outputText'),
+            log: document.getElementById('processLog'),
+            status: document.getElementById('appStatus'),
+            inputLen: document.getElementById('statInputLen'),
+            outputLen: document.getElementById('statOutputLen'),
+            loop: document.getElementById('statLoop'),
+            first: document.getElementById('statFirst'),
+            last: document.getElementById('statLast'),
+            rail: document.getElementById('statRail'),
+            formula: document.getElementById('statFormula'),
+            complexity: document.getElementById('statComplexity')
+        };
 
-        const elStatLength = document.getElementById('statLength');
-        const elStatFirst = document.getElementById('statFirst');
-        const elStatLast = document.getElementById('statLast');
-        const elStatRail = document.getElementById('statRail');
-        const elStatLoop = document.getElementById('statLoop');
+        // Event Listeners for real-time stats
+        DOM.input.addEventListener('input', () => DOM.inputLen.textContent = DOM.input.value.length);
+        DOM.key.addEventListener('input', updateKeyAnalysis);
 
-        // Event Listener for Key Analysis
-        elKeyInput.addEventListener('input', updateKeyAnalysis);
-
+        // Core Utility Functions
         function getCharValue(char) {
-            if (!char) return 1;
+            if (!char) return 0;
             const upper = char.toUpperCase();
-            if (upper >= 'A' && upper <= 'Z') {
-                return upper.charCodeAt(0) - 64;
-            }
-            return 1;
+            if (upper >= 'A' && upper <= 'Z') return upper.charCodeAt(0) - 64;
+            return upper.charCodeAt(0); 
         }
 
         function analyzeKey(key) {
-            if (!key) {
-                return { loop: 0, rail: 0, first: '-', last: '-', length: 0 };
-            }
-            const length = key.length;
-            const loop = length;
+            if (!key) return { loop: 0, rail: 0, first: '-', last: '-', firstVal: 0, lastVal: 0 };
+            
+            const loop = key.length;
             const first = key.charAt(0);
-            const last = key.charAt(length - 1);
+            const last = key.charAt(loop - 1);
             
-            const valFirst = getCharValue(first);
-            const valLast = getCharValue(last);
+            const firstVal = getCharValue(first);
+            const lastVal = getCharValue(last);
             
-            const rail = ((valFirst + valLast) % 4) + 2;
+            // Core Formula Specification
+            const rail = ((firstVal + lastVal) % 4) + 2;
             
-            return { loop, rail, first, last, length };
+            return { loop, rail, first, last, firstVal, lastVal };
         }
 
         function updateKeyAnalysis() {
-            const params = analyzeKey(elKeyInput.value);
-            elStatLength.textContent = params.length;
-            elStatFirst.textContent = params.first;
-            elStatLast.textContent = params.last;
-            elStatRail.textContent = params.rail;
-            elStatLoop.textContent = params.loop;
+            const params = analyzeKey(DOM.key.value);
+            DOM.loop.textContent = params.loop;
+            DOM.first.textContent = `${params.first || '-'} (${params.firstVal})`;
+            DOM.last.textContent = `${params.last || '-'} (${params.lastVal})`;
+            DOM.rail.textContent = params.rail;
+            
+            if (params.loop > 0) {
+                DOM.formula.textContent = `Rail Formula: ((${params.firstVal} + ${params.lastVal}) % 4) + 2 = ${params.rail}`;
+                DOM.complexity.textContent = `O(N × ${params.loop})`;
+            } else {
+                DOM.formula.textContent = `Formula: ((0 + 0) % 4) + 2 = 0`;
+                DOM.complexity.textContent = `-`;
+            }
         }
 
-        function clearLog() {
-            elLog.innerHTML = '';
-        }
-
-        function appendLog(message, type = 'info') {
+        // Logging System
+        function clearLog() { DOM.log.innerHTML = ''; }
+        function log(msg, type = 'info') {
             const div = document.createElement('div');
             div.className = `log-entry log-${type}`;
-            div.textContent = message;
-            elLog.appendChild(div);
-            elLog.scrollTop = elLog.scrollHeight;
+            div.textContent = msg;
+            DOM.log.appendChild(div);
+            DOM.log.scrollTop = DOM.log.scrollHeight;
         }
 
-        // --- Core Algorithms ---
+        function setStatus(text, type) {
+            DOM.status.textContent = text;
+            DOM.status.className = `status-badge badge-${type}`;
+        }
+
+        // --- Core XRF Algorithms (Unchanged) ---
 
         function xorCipher(text, key) {
             if (!key) return text;
@@ -339,59 +406,52 @@
         }
 
         function railFenceEncrypt(text, rails) {
-            if (rails <= 1 || text.length <= rails) return text;
+            if (rails < 2 || text.length <= 1) return text;
             let fence = Array.from({ length: rails }, () => []);
             let row = 0;
             let dir = 1;
 
-            for (let i = 0; i < text.length; i++) {
-                fence[row].push(text[i]);
+            for (let char of text) {
+                fence[row].push(char);
                 row += dir;
-                if (row === 0 || row === rails - 1) {
-                    dir *= -1;
-                }
+                if (row === 0 || row === rails - 1) dir *= -1;
             }
-
             return fence.map(r => r.join('')).join('');
         }
 
         function railFenceDecrypt(text, rails) {
-            if (rails <= 1 || text.length <= rails) return text;
+            if (rails < 2 || text.length <= 1) return text;
             
-            let lengths = Array(rails).fill(0);
+            let fence = Array.from({ length: rails }, () => Array(text.length).fill(null));
             let row = 0;
             let dir = 1;
-            
+
             for (let i = 0; i < text.length; i++) {
-                lengths[row]++;
+                fence[row][i] = '*';
                 row += dir;
-                if (row === 0 || row === rails - 1) {
-                    dir *= -1;
-                }
+                if (row === 0 || row === rails - 1) dir *= -1;
             }
 
-            let fence = [];
             let index = 0;
-            for (let i = 0; i < rails; i++) {
-                fence.push(text.substring(index, index + lengths[i]).split(''));
-                index += lengths[i];
+            for (let r = 0; r < rails; r++) {
+                for (let c = 0; c < text.length; c++) {
+                    if (fence[r][c] === '*' && index < text.length) {
+                        fence[r][c] = text[index++];
+                    }
+                }
             }
 
             let result = '';
             row = 0;
             dir = 1;
             for (let i = 0; i < text.length; i++) {
-                result += fence[row].shift();
+                result += fence[row][i];
                 row += dir;
-                if (row === 0 || row === rails - 1) {
-                    dir *= -1;
-                }
+                if (row === 0 || row === rails - 1) dir *= -1;
             }
-
             return result;
         }
 
-        // Safe Base64 for 16-bit Javascript char codes (Unicode safe)
         function safeBase64Encode(str) {
             const bytes = new Uint8Array(str.length * 2);
             for (let i = 0; i < str.length; i++) {
@@ -400,18 +460,14 @@
                 bytes[i * 2 + 1] = code >> 8;
             }
             let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
             return btoa(binary);
         }
 
         function safeBase64Decode(b64) {
             let binary = atob(b64);
             let bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
-            }
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
             let str = '';
             for (let i = 0; i < bytes.length; i += 2) {
                 str += String.fromCharCode(bytes[i] | (bytes[i + 1] << 8));
@@ -419,93 +475,282 @@
             return str;
         }
 
-        // --- Process Flows ---
+        // --- AES & Crypto Utilities ---
+        
+        async function deriveAESKey(password, salt) {
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey(
+                "raw",
+                enc.encode(password),
+                { name: "PBKDF2" },
+                false,
+                ["deriveBits", "deriveKey"]
+            );
+            return crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: 100000,
+                    hash: "SHA-256"
+                },
+                keyMaterial,
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+        }
 
-        function processCipher(mode) {
-            const text = elInputText.value;
-            const key = elKeyInput.value;
+        function bytesToBase64(bytes) {
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
 
-            if (!text || !key) {
-                alert("Please provide both Input Text and Key.");
+        function base64ToBytes(b64) {
+            let binary = atob(b64);
+            let bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        // --- Execution Engine ---
+
+        async function executeProcess(mode) {
+            const text = DOM.input.value;
+            const key = DOM.key.value;
+
+            clearLog();
+
+            if (!text) {
+                log("Error: Plaintext/Ciphertext is empty.", "error");
+                setStatus("Error", "error");
+                return;
+            }
+            if (!key) {
+                log("Error: Encryption Key is empty.", "error");
+                setStatus("Error", "error");
                 return;
             }
 
-            clearLog();
             const params = analyzeKey(key);
+            setStatus(mode === 'encrypt' ? 'Encrypting...' : 'Decrypting...', mode);
             
-            if (mode === 'encrypt') {
-                appendLog("Encrypt Started", "success");
-                appendLog(`Loop Count: ${params.loop}`);
-                appendLog(`Rail Count: ${params.rail}`);
+            try {
+                if (mode === 'encrypt') {
+                    let current = text;
+                    for (let i = 1; i <= params.loop; i++) {
+                        log(`Round ${i}`, "round");
+                        current = xorCipher(current, key);
+                        log(`XOR Complete`, "detail");
+                        current = railFenceEncrypt(current, params.rail);
+                        log(`Rail Complete`, "detail");
+                    }
 
-                let current = text;
-                for (let i = 1; i <= params.loop; i++) {
-                    appendLog(`Round ${i}:`, "round");
-                    
-                    current = xorCipher(current, key);
-                    appendLog("XOR Complete");
-                    
-                    current = railFenceEncrypt(current, params.rail);
-                    appendLog("Rail Fence Complete");
-                }
-
-                try {
+                    log("XRF Complete", "info");
                     current = safeBase64Encode(current);
-                    elOutputText.value = current;
-                    appendLog("Base64 Encode Complete");
-                    appendLog("Encryption Finished", "success");
-                } catch (e) {
-                    appendLog("Error in Base64 Encoding", "error");
-                }
+                    log("Base64 Complete", "info");
 
-            } else if (mode === 'decrypt') {
-                appendLog("Decrypt Started", "success");
-                appendLog(`Loop Count: ${params.loop}`);
-                appendLog(`Rail Count: ${params.rail}`);
-
-                let current;
-                try {
-                    current = safeBase64Decode(text);
-                    appendLog("Base64 Decode Complete");
-                } catch (e) {
-                    alert("Invalid Ciphertext format.");
-                    appendLog("Base64 Decode Failed", "error");
-                    return;
-                }
-
-                for (let i = 1; i <= params.loop; i++) {
-                    appendLog(`Round ${i}:`, "round");
+                    log("Generating Salt...", "detail");
+                    const salt = crypto.getRandomValues(new Uint8Array(16));
                     
-                    current = railFenceDecrypt(current, params.rail);
-                    appendLog("Rail Fence Complete");
-                    
-                    current = xorCipher(current, key);
-                    appendLog("XOR Complete");
-                }
+                    log("Generating IV...", "detail");
+                    const iv = crypto.getRandomValues(new Uint8Array(12));
 
-                elOutputText.value = current;
-                appendLog("Decryption Finished", "success");
+                    log("PBKDF2 Key Derivation...", "detail");
+                    const aesKey = await deriveAESKey(key, salt);
+
+                    log("AES-256-GCM Encrypt...", "detail");
+                    const enc = new TextEncoder();
+                    const aesCiphertextBuffer = await crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv },
+                        aesKey,
+                        enc.encode(current)
+                    );
+
+                    const cipherArray = new Uint8Array(aesCiphertextBuffer);
+                    const combined = new Uint8Array(16 + 12 + cipherArray.byteLength);
+                    combined.set(salt, 0);
+                    combined.set(iv, 16);
+                    combined.set(cipherArray, 28);
+
+                    current = bytesToBase64(combined);
+
+                    DOM.output.value = current;
+                    log("Encryption Finished", "success");
+                    setStatus("Success", "success");
+
+                } else if (mode === 'decrypt') {
+                    let combined;
+                    try {
+                        combined = base64ToBytes(text);
+                    } catch (e) {
+                        throw new Error("Invalid Final Ciphertext Base64 format.");
+                    }
+
+                    if (combined.length < 28) throw new Error("Ciphertext too short (missing Salt/IV).");
+
+                    log("Extract Salt...", "detail");
+                    const salt = combined.slice(0, 16);
+                    
+                    log("Extract IV...", "detail");
+                    const iv = combined.slice(16, 28);
+                    
+                    const ciphertext = combined.slice(28);
+
+                    log("PBKDF2 Key Derivation...", "detail");
+                    const aesKey = await deriveAESKey(key, salt);
+
+                    log("AES-256-GCM Decrypt...", "detail");
+                    let decryptedBuffer;
+                    try {
+                        decryptedBuffer = await crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: iv },
+                            aesKey,
+                            ciphertext
+                        );
+                    } catch (e) {
+                        throw new Error("AES Decrypt Failed. Incorrect key or corrupted data.");
+                    }
+
+                    let xrfBase64 = new TextDecoder().decode(decryptedBuffer);
+
+                    log("Base64 Decode...", "info");
+                    let current;
+                    try {
+                        current = safeBase64Decode(xrfBase64);
+                    } catch (e) {
+                        throw new Error("Base64 Decode Failed for XRF result.");
+                    }
+
+                    for (let i = 1; i <= params.loop; i++) {
+                        log(`Round ${i} Reverse...`, "round");
+                        current = railFenceDecrypt(current, params.rail);
+                        current = xorCipher(current, key);
+                    }
+
+                    DOM.output.value = current;
+                    log("Decryption Finished", "success");
+                    setStatus("Success", "success");
+                }
+                DOM.outputLen.textContent = DOM.output.value.length;
+
+            } catch (error) {
+                log(`PROCESS FAILED: ${error.message}`, "error");
+                setStatus("Error", "error");
             }
         }
 
         function copyOutput() {
-            if (elOutputText.value) {
-                navigator.clipboard.writeText(elOutputText.value)
+            if (DOM.output.value) {
+                navigator.clipboard.writeText(DOM.output.value)
                     .then(() => alert("Output copied to clipboard!"))
-                    .catch(err => alert("Failed to copy text."));
+                    .catch(() => alert("Failed to copy text."));
             }
         }
 
         function clearAll() {
-            elInputText.value = '';
-            elKeyInput.value = '';
-            elOutputText.value = '';
+            DOM.input.value = '';
+            DOM.key.value = '';
+            DOM.output.value = '';
+            DOM.inputLen.textContent = '0';
+            DOM.outputLen.textContent = '0';
+            setStatus("System Ready", "ready");
             clearLog();
             updateKeyAnalysis();
         }
 
-        // Init
+        // --- Automated Self Test (Production Validation) ---
+        async function runSelfTest() {
+            const testCases = [
+                { id: "Single Char", t: "A", k: "KEY" },
+                { id: "Two Chars", t: "AB", k: "A" },
+                { id: "Three Chars", t: "ABC", k: "AB" },
+                { id: "10 Chars", t: "1234567890", k: "RAIL" },
+                { id: "100 Chars", t: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.", k: "COMPLEX_KEY_123!" },
+                { id: "Unicode", t: "Hello 世界 🔑", k: "KUCING" }
+            ];
+
+            let allPassed = true;
+            console.log("--- XRF+AES CIPHER SELF TEST START ---");
+
+            for (let tc of testCases) {
+                try {
+                    const params = analyzeKey(tc.k);
+                    
+                    // 1. XRF Encrypt
+                    let encrypted = tc.t;
+                    for(let i=0; i<params.loop; i++) {
+                        encrypted = xorCipher(encrypted, tc.k);
+                        encrypted = railFenceEncrypt(encrypted, params.rail);
+                    }
+                    encrypted = safeBase64Encode(encrypted);
+
+                    // 2. AES Encrypt
+                    const salt = crypto.getRandomValues(new Uint8Array(16));
+                    const iv = crypto.getRandomValues(new Uint8Array(12));
+                    const aesKeyEn = await deriveAESKey(tc.k, salt);
+                    const enc = new TextEncoder();
+                    const cipherBuf = await crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv }, 
+                        aesKeyEn, 
+                        enc.encode(encrypted)
+                    );
+                    
+                    const cArr = new Uint8Array(cipherBuf);
+                    const comb = new Uint8Array(16 + 12 + cArr.byteLength);
+                    comb.set(salt, 0); 
+                    comb.set(iv, 16); 
+                    comb.set(cArr, 28);
+                    let finalCiphertext = bytesToBase64(comb);
+
+                    // 3. AES Decrypt
+                    const combD = base64ToBytes(finalCiphertext);
+                    const saltD = combD.slice(0, 16);
+                    const ivD = combD.slice(16, 28);
+                    const cipherD = combD.slice(28);
+                    const aesKeyDe = await deriveAESKey(tc.k, saltD);
+                    const decBuf = await crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: ivD }, 
+                        aesKeyDe, 
+                        cipherD
+                    );
+                    let decrypted = new TextDecoder().decode(decBuf);
+
+                    // 4. XRF Decrypt
+                    decrypted = safeBase64Decode(decrypted);
+                    for(let i=0; i<params.loop; i++) {
+                        decrypted = railFenceDecrypt(decrypted, params.rail);
+                        decrypted = xorCipher(decrypted, tc.k);
+                    }
+
+                    // 5. Compare
+                    if (decrypted !== tc.t) {
+                        console.error(`[FAILED] ${tc.id} - Expected: ${tc.t}, Got: ${decrypted}`);
+                        allPassed = false;
+                    } else {
+                        console.log(`[OK] ${tc.id} (Rail: ${params.rail}, Loop: ${params.loop})`);
+                    }
+                } catch (e) {
+                    console.error(`[ERROR] ${tc.id} threw an exception:`, e);
+                    allPassed = false;
+                }
+            }
+
+            if (allPassed) {
+                console.log("%cXRF+AES SELF TEST PASSED", "color: #50fa7b; font-weight: bold; font-size: 14px;");
+            } else {
+                console.log("%cXRF+AES SELF TEST FAILED", "color: #ff5555; font-weight: bold; font-size: 14px;");
+            }
+            console.log("--- XRF+AES CIPHER SELF TEST END ---");
+        }
+
+        // Initialize application state
         updateKeyAnalysis();
+        runSelfTest();
     </script>
 </body>
 </html>
